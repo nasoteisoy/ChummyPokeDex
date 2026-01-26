@@ -388,6 +388,22 @@
             z-index: 0;
         }
 
+        .pokemon-number {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            padding: 0.2rem 0.4rem;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid var(--primary);
+            border-radius: 3px;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.55rem;
+            color: var(--primary);
+            font-weight: 700;
+            z-index: 2;
+            backdrop-filter: blur(5px);
+        }
+
         .pokemon-name {
             font-family: 'Press Start 2P', monospace;
             font-size: 0.65rem;
@@ -794,6 +810,7 @@
 
             card.innerHTML = `
                 <div class="pokemon-image-container" data-id="${pokemon.id}">
+                    <div class="pokemon-number">#${pokemon.id}</div>
                     <img src="${pokemon.sprite}" alt="${pokemon.name}" class="pokemon-image">
                     <div class="gen-badge gen-${gen}">${gen}</div>
                 </div>
@@ -824,15 +841,34 @@
             });
 
             // Click on card in grid view to switch to normal view and scroll to it
+            // Double tap anywhere on card to toggle between normal and grid view
+            let lastTap = 0;
             card.addEventListener('click', (e) => {
-                if (currentView === 'grid') {
-                    // Switch to normal view
+                const currentTime = new Date().getTime();
+                const tapLength = currentTime - lastTap;
+                
+                // Double tap detected (taps within 300ms)
+                if (tapLength < 300 && tapLength > 0) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Toggle between views
+                    if (currentView === 'grid') {
+                        setViewMode('normal');
+                        setTimeout(() => {
+                            scrollToPokemon(pokemon.id);
+                        }, 100);
+                    } else {
+                        setViewMode('grid');
+                    }
+                } else if (currentView === 'grid') {
+                    // Single click in grid view - switch to normal and scroll
                     setViewMode('normal');
-                    // Wait a bit for the transition, then scroll to this pokemon
                     setTimeout(() => {
                         scrollToPokemon(pokemon.id);
                     }, 100);
                 }
+                
+                lastTap = currentTime;
             });
 
             // Load evolution chain asynchronously
