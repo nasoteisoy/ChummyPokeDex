@@ -143,10 +143,37 @@
         }
 
         .gen-btn.active {
-            background: var(--primary);
-            color: var(--dark);
-            box-shadow: 0 0 30px var(--glow);
+            color: white;
+            box-shadow: 0 0 30px currentColor;
         }
+
+        /* Generation-specific button colors */
+        .gen-btn[data-gen="1"] { border-color: #FF1744; }
+        .gen-btn[data-gen="1"].active { background: linear-gradient(135deg, #FF1744, #D50000); }
+        
+        .gen-btn[data-gen="2"] { border-color: #FFD600; }
+        .gen-btn[data-gen="2"].active { background: linear-gradient(135deg, #FFD600, #FFA000); color: #000; }
+        
+        .gen-btn[data-gen="3"] { border-color: #00E676; }
+        .gen-btn[data-gen="3"].active { background: linear-gradient(135deg, #00E676, #00C853); color: #000; }
+        
+        .gen-btn[data-gen="4"] { border-color: #2979FF; }
+        .gen-btn[data-gen="4"].active { background: linear-gradient(135deg, #2979FF, #2962FF); }
+        
+        .gen-btn[data-gen="5"] { border-color: #D500F9; }
+        .gen-btn[data-gen="5"].active { background: linear-gradient(135deg, #D500F9, #AA00FF); }
+        
+        .gen-btn[data-gen="6"] { border-color: #FF6D00; }
+        .gen-btn[data-gen="6"].active { background: linear-gradient(135deg, #FF6D00, #FF3D00); }
+        
+        .gen-btn[data-gen="7"] { border-color: #00E5FF; }
+        .gen-btn[data-gen="7"].active { background: linear-gradient(135deg, #00E5FF, #00B8D4); color: #000; }
+        
+        .gen-btn[data-gen="8"] { border-color: #F50057; }
+        .gen-btn[data-gen="8"].active { background: linear-gradient(135deg, #F50057, #C51162); }
+        
+        .gen-btn[data-gen="9"] { border-color: #76FF03; }
+        .gen-btn[data-gen="9"].active { background: linear-gradient(135deg, #76FF03, #64DD17); color: #000; }
 
         .loading {
             text-align: center;
@@ -162,15 +189,15 @@
 
         .pokemon-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 2rem;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 1.5rem;
             margin-top: 3rem;
         }
 
         .pokemon-card {
             background: linear-gradient(135deg, rgba(10, 14, 39, 0.8), rgba(15, 23, 41, 0.8));
             border: 2px solid rgba(0, 255, 65, 0.3);
-            padding: 1.5rem;
+            padding: 1rem;
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
@@ -230,6 +257,8 @@
             object-fit: contain;
             filter: drop-shadow(0 0 10px rgba(0, 255, 65, 0.3));
             transition: transform 0.3s ease;
+            position: relative;
+            z-index: 1;
         }
 
         .pokemon-image-container:hover .pokemon-image {
@@ -252,14 +281,15 @@
             font-size: 0.7rem;
             color: white;
             box-shadow: 0 0 15px rgba(255, 0, 110, 0.5);
+            z-index: 0;
         }
 
         .pokemon-name {
             font-family: 'Press Start 2P', monospace;
-            font-size: 0.8rem;
+            font-size: 0.65rem;
             color: var(--primary);
             text-align: center;
-            margin-bottom: 0.75rem;
+            margin-bottom: 0.5rem;
             text-transform: capitalize;
             text-shadow: 0 0 10px var(--glow);
         }
@@ -275,21 +305,21 @@
 
         .evolution-preview {
             display: flex;
-            gap: 0.5rem;
+            gap: 0.4rem;
             justify-content: center;
             align-items: center;
-            margin-top: 1rem;
-            padding-top: 1rem;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
             border-top: 1px solid rgba(0, 255, 65, 0.2);
-            min-height: 60px;
+            min-height: 50px;
         }
 
         .evolution-mini {
-            width: 50px;
-            height: 50px;
+            width: 40px;
+            height: 40px;
             border: 1px solid rgba(0, 255, 65, 0.3);
             border-radius: 4px;
-            padding: 4px;
+            padding: 3px;
             background: rgba(10, 14, 39, 0.6);
             cursor: pointer;
             transition: all 0.3s ease;
@@ -304,6 +334,8 @@
             height: 100%;
             object-fit: contain;
             filter: drop-shadow(0 0 5px rgba(0, 255, 65, 0.2));
+            position: relative;
+            z-index: 1;
         }
 
         .evolution-mini:hover {
@@ -314,12 +346,24 @@
         }
 
         .evolution-mini .gen-badge {
-            width: 20px;
-            height: 20px;
-            font-size: 0.5rem;
-            top: 2px;
-            right: 2px;
+            width: 16px;
+            height: 16px;
+            font-size: 0.45rem;
+            top: 1px;
+            right: 1px;
+            z-index: 0;
         }
+        
+        /* Generation-specific colors */
+        .gen-badge.gen-1 { background: linear-gradient(135deg, #FF1744, #D50000); }
+        .gen-badge.gen-2 { background: linear-gradient(135deg, #FFD600, #FFA000); }
+        .gen-badge.gen-3 { background: linear-gradient(135deg, #00E676, #00C853); }
+        .gen-badge.gen-4 { background: linear-gradient(135deg, #2979FF, #2962FF); }
+        .gen-badge.gen-5 { background: linear-gradient(135deg, #D500F9, #AA00FF); }
+        .gen-badge.gen-6 { background: linear-gradient(135deg, #FF6D00, #FF3D00); }
+        .gen-badge.gen-7 { background: linear-gradient(135deg, #00E5FF, #00B8D4); }
+        .gen-badge.gen-8 { background: linear-gradient(135deg, #F50057, #C51162); }
+        .gen-badge.gen-9 { background: linear-gradient(135deg, #76FF03, #64DD17); }
 
         .evolution-mini-arrow {
             color: var(--secondary);
@@ -334,9 +378,9 @@
         }
 
         .type-badge {
-            padding: 0.4rem 0.8rem;
+            padding: 0.3rem 0.6rem;
             border-radius: 4px;
-            font-size: 0.7rem;
+            font-size: 0.6rem;
             font-weight: 700;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -376,7 +420,7 @@
 
         @media (max-width: 768px) {
             .pokemon-grid {
-                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
                 gap: 1rem;
             }
 
@@ -386,8 +430,8 @@
             }
 
             .evolution-mini {
-                width: 40px;
-                height: 40px;
+                width: 35px;
+                height: 35px;
             }
         }
 
@@ -410,15 +454,15 @@
         </header>
 
         <div class="gen-selector">
-            <button class="gen-btn" data-gen="1">GEN I</button>
-            <button class="gen-btn" data-gen="2">GEN II</button>
-            <button class="gen-btn" data-gen="3">GEN III</button>
-            <button class="gen-btn" data-gen="4">GEN IV</button>
-            <button class="gen-btn" data-gen="5">GEN V</button>
-            <button class="gen-btn" data-gen="6">GEN VI</button>
-            <button class="gen-btn" data-gen="7">GEN VII</button>
-            <button class="gen-btn" data-gen="8">GEN VIII</button>
-            <button class="gen-btn" data-gen="9">GEN IX</button>
+            <button class="gen-btn" data-gen="1">GEN 1</button>
+            <button class="gen-btn" data-gen="2">GEN 2</button>
+            <button class="gen-btn" data-gen="3">GEN 3</button>
+            <button class="gen-btn" data-gen="4">GEN 4</button>
+            <button class="gen-btn" data-gen="5">GEN 5</button>
+            <button class="gen-btn" data-gen="6">GEN 6</button>
+            <button class="gen-btn" data-gen="7">GEN 7</button>
+            <button class="gen-btn" data-gen="8">GEN 8</button>
+            <button class="gen-btn" data-gen="9">GEN 9</button>
         </div>
 
         <div id="loading" class="loading" style="display: none;">
@@ -543,7 +587,7 @@
             card.innerHTML = `
                 <div class="pokemon-image-container" data-id="${pokemon.id}">
                     <img src="${pokemon.sprite}" alt="${pokemon.name}" class="pokemon-image">
-                    <div class="gen-badge">${gen}</div>
+                    <div class="gen-badge gen-${gen}">${gen}</div>
                 </div>
                 <div class="pokemon-name">${pokemon.name}</div>
                 <div class="pokemon-types">${typesHTML}</div>
@@ -610,7 +654,7 @@
                     mini.className = 'evolution-mini';
                     mini.innerHTML = `
                         <img src="${evoPokemon.sprite}" alt="${evoPokemon.name}" title="${evoPokemon.name}">
-                        <div class="gen-badge">${evoGen}</div>
+                        <div class="gen-badge gen-${evoGen}">${evoGen}</div>
                     `;
                     mini.addEventListener('click', (e) => {
                         e.stopPropagation();
@@ -658,7 +702,7 @@
                     mini.className = 'evolution-mini';
                     mini.innerHTML = `
                         <img src="${evoPokemon.sprite}" alt="${evoPokemon.name}" title="${evoPokemon.name}">
-                        <div class="gen-badge">${evoGen}</div>
+                        <div class="gen-badge gen-${evoGen}">${evoGen}</div>
                     `;
                     mini.addEventListener('click', (e) => {
                         e.stopPropagation();
