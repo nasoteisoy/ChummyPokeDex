@@ -957,30 +957,31 @@
                 currentMarker.textContent = 'YOU';
                 container.appendChild(currentMarker);
                 
-                // Check if current Pokemon has any evolutions (from branches or linear)
-                const currentBranches = branches.filter(b => b.from === pokemon.id);
-                const hasLinearEvolution = currentIndex >= 0 && currentIndex < evolutionChain.length - 1 && 
-                                          evolutionChain[currentIndex + 1] && 
-                                          parentMap[evolutionChain[currentIndex + 1]] === pokemon.id;
+                // Find all Pokemon that have this Pokemon as their parent (direct children)
+                const directChildren = Object.entries(parentMap)
+                    .filter(([childId, parentId]) => parentId === pokemon.id)
+                    .map(([childId]) => parseInt(childId));
                 
-                // Only show next evolutions if this Pokemon actually evolves further
-                if (currentBranches.length > 0 || hasLinearEvolution) {
+                // Check if current Pokemon has any evolutions
+                const currentBranches = branches.filter(b => b.from === pokemon.id);
+                
+                // Only show next evolutions if this Pokemon actually has children
+                if (directChildren.length > 0) {
                     const arrow = document.createElement('span');
                     arrow.className = 'evolution-mini-arrow';
                     arrow.textContent = '→';
                     container.appendChild(arrow);
                     
-                    // If current Pokemon has multiple evolution paths, show them all
-                    if (currentBranches.length > 0) {
+                    // If current Pokemon has multiple evolution paths, show them all in a column
+                    if (directChildren.length > 1) {
                         // Create a container for branching evolutions
                         const branchContainer = document.createElement('div');
                         branchContainer.style.cssText = 'display: flex; flex-direction: column; gap: 0.3rem; align-items: center;';
                         
-                        // Show main linear evolution first (if exists)
-                        if (hasLinearEvolution) {
-                            const evoId = evolutionChain[currentIndex + 1];
-                            const evoPokemon = await fetchPokemon(evoId);
-                            const evoGen = getGenerationFromId(evoId);
+                        // Show all children
+                        for (const childId of directChildren) {
+                            const evoPokemon = await fetchPokemon(childId);
+                            const evoGen = getGenerationFromId(childId);
                             
                             const mini = document.createElement('div');
                             mini.className = 'evolution-mini';
@@ -991,49 +992,23 @@
                             
                             mini.addEventListener('click', (e) => {
                                 e.stopPropagation();
-                                playPokemonSound(evoId);
+                                playPokemonSound(childId);
                             });
                             
                             mini.addEventListener('dblclick', (e) => {
                                 e.stopPropagation();
-                                scrollToPokemon(evoId);
-                            });
-                            
-                            branchContainer.appendChild(mini);
-                        }
-                        
-                        // Show branch evolutions
-                        for (const branch of currentBranches) {
-                            const evoId = branch.to;
-                            const evoPokemon = await fetchPokemon(evoId);
-                            const evoGen = getGenerationFromId(evoId);
-                            
-                            const mini = document.createElement('div');
-                            mini.className = 'evolution-mini';
-                            mini.innerHTML = `
-                                <img src="${evoPokemon.sprite}" alt="${evoPokemon.name}" title="${evoPokemon.name}">
-                                <div class="gen-badge gen-${evoGen}">${evoGen}</div>
-                            `;
-                            
-                            mini.addEventListener('click', (e) => {
-                                e.stopPropagation();
-                                playPokemonSound(evoId);
-                            });
-                            
-                            mini.addEventListener('dblclick', (e) => {
-                                e.stopPropagation();
-                                scrollToPokemon(evoId);
+                                scrollToPokemon(childId);
                             });
                             
                             branchContainer.appendChild(mini);
                         }
                         
                         container.appendChild(branchContainer);
-                    } else if (hasLinearEvolution) {
-                        // Show single linear evolution
-                        const evoId = evolutionChain[currentIndex + 1];
-                        const evoPokemon = await fetchPokemon(evoId);
-                        const evoGen = getGenerationFromId(evoId);
+                    } else {
+                        // Single child - show it and continue the chain
+                        const childId = directChildren[0];
+                        const evoPokemon = await fetchPokemon(childId);
+                        const evoGen = getGenerationFromId(childId);
                         
                         const mini = document.createElement('div');
                         mini.className = 'evolution-mini';
@@ -1044,20 +1019,87 @@
                         
                         mini.addEventListener('click', (e) => {
                             e.stopPropagation();
-                            playPokemonSound(evoId);
+                            playPokemonSound(childId);
                         });
                         
                         mini.addEventListener('dblclick', (e) => {
                             e.stopPropagation();
-                            scrollToPokemon(evoId);
+                            scrollToPokemon(childId);
                         });
                         
                         container.appendChild(mini);
+                        
+                        // Check if the child has further evolutions
+                        const grandchildren = Object.entries(parentMap)
+                            .filter(([gChildId, gParentId]) => gParentId === childId)
+                            .map(([gChildId]) => parseInt(gChildId));
+                        
+                        if (grandchildren.length > 0) {
+                            const arrow = document.createElement('span');
+                            arrow.className = 'evolution-mini-arrow';
+                            arrow.textContent = '→';
+                            container.appendChild(arrow);
+                            
+                            // Show grandchildren (can be multiple like Poliwrath/Politoed)
+                            if (grandchildren.length > 1) {
+                                const branchContainer = document.createElement('div');
+                                branchContainer.style.cssText = 'display: flex; flex-direction: column; gap: 0.3rem; align-items: center;';
+                                
+                                for (const gChildId of grandchildren) {
+                                    const gEvoPokemon = await fetchPokemon(gChildId);
+                                    const gEvoGen = getGenerationFromId(gChildId);
+                                    
+                                    const gMini = document.createElement('div');
+                                    gMini.className = 'evolution-mini';
+                                    gMini.innerHTML = `
+                                        <img src="${gEvoPokemon.sprite}" alt="${gEvoPokemon.name}" title="${gEvoPokemon.name}">
+                                        <div class="gen-badge gen-${gEvoGen}">${gEvoGen}</div>
+                                    `;
+                                    
+                                    gMini.addEventListener('click', (e) => {
+                                        e.stopPropagation();
+                                        playPokemonSound(gChildId);
+                                    });
+                                    
+                                    gMini.addEventListener('dblclick', (e) => {
+                                        e.stopPropagation();
+                                        scrollToPokemon(gChildId);
+                                    });
+                                    
+                                    branchContainer.appendChild(gMini);
+                                }
+                                
+                                container.appendChild(branchContainer);
+                            } else {
+                                const gChildId = grandchildren[0];
+                                const gEvoPokemon = await fetchPokemon(gChildId);
+                                const gEvoGen = getGenerationFromId(gChildId);
+                                
+                                const gMini = document.createElement('div');
+                                gMini.className = 'evolution-mini';
+                                gMini.innerHTML = `
+                                    <img src="${gEvoPokemon.sprite}" alt="${gEvoPokemon.name}" title="${gEvoPokemon.name}">
+                                    <div class="gen-badge gen-${gEvoGen}">${gEvoGen}</div>
+                                `;
+                                
+                                gMini.addEventListener('click', (e) => {
+                                    e.stopPropagation();
+                                    playPokemonSound(gChildId);
+                                });
+                                
+                                gMini.addEventListener('dblclick', (e) => {
+                                    e.stopPropagation();
+                                    scrollToPokemon(gChildId);
+                                });
+                                
+                                container.appendChild(gMini);
+                            }
+                        }
                     }
                 }
                 
                 // If no evolutions at all, show message
-                if (ancestry.length === 0 && currentBranches.length === 0 && !hasLinearEvolution) {
+                if (ancestry.length === 0 && directChildren.length === 0) {
                     container.innerHTML = '<span class="evolution-loading">No evolutions</span>';
                 }
             } catch (err) {
