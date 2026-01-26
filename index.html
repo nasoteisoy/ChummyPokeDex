@@ -840,8 +840,9 @@
                 });
             });
 
-            // Click on card in grid view to switch to normal view and scroll to it
-            // Double tap anywhere on card to toggle between normal and grid view
+            // Handle clicks and double-taps on card
+            // In grid view: single tap OR double tap -> switch to normal and scroll to pokemon
+            // In normal view: double tap -> switch to grid view
             let lastTap = 0;
             card.addEventListener('click', (e) => {
                 const currentTime = new Date().getTime();
@@ -851,17 +852,21 @@
                 if (tapLength < 300 && tapLength > 0) {
                     e.preventDefault();
                     e.stopPropagation();
-                    // Toggle between views
+                    
                     if (currentView === 'grid') {
+                        // Double tap in grid view - switch to normal and scroll to this pokemon
                         setViewMode('normal');
                         setTimeout(() => {
                             scrollToPokemon(pokemon.id);
                         }, 100);
                     } else {
+                        // Double tap in normal view - switch to grid view
                         setViewMode('grid');
                     }
+                    
+                    lastTap = 0; // Reset to prevent triple-tap issues
                 } else if (currentView === 'grid') {
-                    // Single click in grid view - switch to normal and scroll
+                    // Single tap in grid view - switch to normal and scroll
                     setViewMode('normal');
                     setTimeout(() => {
                         scrollToPokemon(pokemon.id);
