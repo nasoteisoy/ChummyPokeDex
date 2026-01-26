@@ -101,6 +101,109 @@
             animation: fadeIn 1s ease-out 0.3s both;
         }
 
+        .zoom-controls {
+            position: fixed;
+            right: 2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            z-index: 100;
+            animation: fadeIn 1s ease-out 0.4s both;
+        }
+
+        .zoom-label {
+            color: var(--secondary);
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 0.5rem;
+            writing-mode: horizontal-tb;
+        }
+
+        .zoom-btn {
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            padding: 0.75rem 1rem;
+            background: linear-gradient(135deg, rgba(0, 212, 170, 0.1), rgba(0, 255, 65, 0.1));
+            border: 2px solid var(--secondary);
+            color: var(--secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.7rem;
+            letter-spacing: 0.05em;
+            backdrop-filter: blur(10px);
+            white-space: nowrap;
+        }
+
+        .zoom-btn:hover {
+            background: rgba(0, 212, 170, 0.3);
+            transform: translateX(-5px);
+            box-shadow: 0 0 20px rgba(0, 212, 170, 0.5);
+        }
+
+        .zoom-btn.active {
+            background: var(--secondary);
+            color: var(--dark);
+            box-shadow: 0 0 25px rgba(0, 212, 170, 0.8);
+        }
+
+        @media (max-width: 768px) {
+            .zoom-controls {
+                right: 1rem;
+                top: auto;
+                bottom: 2rem;
+                transform: none;
+            }
+            
+            .zoom-btn {
+                padding: 0.6rem 0.8rem;
+                font-size: 0.65rem;
+            }
+        }
+
+        /* Grid view mode - show all Pokemon at once */
+        .pokemon-grid.view-grid {
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 0.8rem;
+        }
+
+        .pokemon-grid.view-grid .pokemon-card {
+            padding: 0.5rem;
+        }
+
+        .pokemon-grid.view-grid .pokemon-name {
+            font-size: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .pokemon-grid.view-grid .type-badge {
+            padding: 0.2rem 0.4rem;
+            font-size: 0.5rem;
+        }
+
+        .pokemon-grid.view-grid .pokemon-types {
+            gap: 0.25rem;
+        }
+
+        .pokemon-grid.view-grid .evolution-preview {
+            display: none;
+        }
+
+        .pokemon-grid.view-grid .gen-badge {
+            width: 24px;
+            height: 24px;
+            font-size: 0.5rem;
+        }
+
+        /* Highlight selected Pokemon in grid view */
+        .pokemon-card.selected {
+            border-color: var(--accent);
+            box-shadow: 0 0 30px rgba(255, 0, 110, 0.8);
+            transform: scale(1.05);
+        }
+
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
@@ -192,6 +295,7 @@
             grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
             gap: 1.5rem;
             margin-top: 3rem;
+            transition: all 0.3s ease;
         }
 
         .pokemon-card {
@@ -497,6 +601,12 @@
         <div id="pokemon-grid" class="pokemon-grid"></div>
     </div>
 
+    <div class="zoom-controls">
+        <span class="zoom-label">VIEW</span>
+        <button class="zoom-btn active" data-view="normal">NORMAL</button>
+        <button class="zoom-btn" data-view="grid">ALL AT ONCE</button>
+    </div>
+
     <script>
         const API_BASE = 'https://pokeapi.co/api/v2';
         const genRanges = {
@@ -513,6 +623,8 @@
 
         let currentGen = null;
         let pokemonCache = {};
+        let currentView = 'normal';
+        let selectedPokemonId = null;
 
         function getGenerationFromId(id) {
             for (const [gen, [start, end]] of Object.entries(genRanges)) {
@@ -530,6 +642,79 @@
                 loadGeneration(gen);
             });
         });
+
+        // View mode controls
+        document.querySelectorAll('.zoom-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const view = e.target.dataset.view;
+                setViewMode(view);
+            });
+        });
+
+        function setViewMode(view) {
+            currentView = view;
+            const grid = document.getElementById('pokemon-grid');
+            
+            // Toggle grid view class
+            if (view === 'grid') {
+                grid.classList.add('view-grid');
+            } else {
+                grid.classList.remove('view-grid');
+                // Clear any selected pokemon when switching back to normal
+                document.querySelectorAll('.pokemon-card').forEach(card => {
+                    card.classList.remove('selected');
+                });
+            }
+            
+            // Update active button
+            document.querySelectorAll('.zoom-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.view === view);
+            });
+        }
+
+        function scrollToPokemon(pokemonId) {
+            const cards = document.querySelectorAll('.pokemon-card');
+            let found = false;
+            
+            // Check if the Pokemon is already visible in the current generation
+            cards.forEach(card => {
+                const imageContainer = card.querySelector('.pokemon-image-container');
+                if (imageContainer && parseInt(imageContainer.dataset.id) === pokemonId) {
+                    found = true;
+                    // Remove selected class from all cards
+                    cards.forEach(c => c.classList.remove('selected'));
+                    // Add selected class to this card
+                    card.classList.add('selected');
+                    // Scroll to the card
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+            
+            // If not found, we need to load the correct generation first
+            if (!found) {
+                const targetGen = getGenerationFromId(pokemonId);
+                if (targetGen !== currentGen) {
+                    // Load the target generation
+                    loadGeneration(targetGen).then(() => {
+                        // Wait a bit for the generation to load, then scroll to the Pokemon
+                        setTimeout(() => {
+                            const cards = document.querySelectorAll('.pokemon-card');
+                            cards.forEach(card => {
+                                const imageContainer = card.querySelector('.pokemon-image-container');
+                                if (imageContainer && parseInt(imageContainer.dataset.id) === pokemonId) {
+                                    // Remove selected class from all cards
+                                    cards.forEach(c => c.classList.remove('selected'));
+                                    // Add selected class to this card
+                                    card.classList.add('selected');
+                                    // Scroll to the card
+                                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                }
+                            });
+                        }, 500);
+                    });
+                }
+            }
+        }
 
         async function loadGeneration(gen) {
             currentGen = gen;
@@ -638,6 +823,18 @@
                 });
             });
 
+            // Click on card in grid view to switch to normal view and scroll to it
+            card.addEventListener('click', (e) => {
+                if (currentView === 'grid') {
+                    // Switch to normal view
+                    setViewMode('normal');
+                    // Wait a bit for the transition, then scroll to this pokemon
+                    setTimeout(() => {
+                        scrollToPokemon(pokemon.id);
+                    }, 100);
+                }
+            });
+
             // Load evolution chain asynchronously
             loadEvolutionPreview(pokemon, card.querySelector('.evolution-preview'));
 
@@ -679,10 +876,19 @@
                         <img src="${evoPokemon.sprite}" alt="${evoPokemon.name}" title="${evoPokemon.name}">
                         <div class="gen-badge gen-${evoGen}">${evoGen}</div>
                     `;
+                    
+                    // Single click plays sound
                     mini.addEventListener('click', (e) => {
                         e.stopPropagation();
                         playPokemonSound(evoId);
                     });
+                    
+                    // Double click jumps to that Pokemon
+                    mini.addEventListener('dblclick', (e) => {
+                        e.stopPropagation();
+                        scrollToPokemon(evoId);
+                    });
+                    
                     container.appendChild(mini);
                     
                     if (i < currentIndex - 1) {
@@ -727,10 +933,19 @@
                         <img src="${evoPokemon.sprite}" alt="${evoPokemon.name}" title="${evoPokemon.name}">
                         <div class="gen-badge gen-${evoGen}">${evoGen}</div>
                     `;
+                    
+                    // Single click plays sound
                     mini.addEventListener('click', (e) => {
                         e.stopPropagation();
                         playPokemonSound(evoId);
                     });
+                    
+                    // Double click jumps to that Pokemon
+                    mini.addEventListener('dblclick', (e) => {
+                        e.stopPropagation();
+                        scrollToPokemon(evoId);
+                    });
+                    
                     container.appendChild(mini);
                     
                     if (i < evolutionChain.length - 1) {
