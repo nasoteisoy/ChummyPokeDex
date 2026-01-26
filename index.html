@@ -420,7 +420,7 @@
 
         @media (max-width: 768px) {
             .pokemon-grid {
-                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
                 gap: 1rem;
             }
 
@@ -430,18 +430,26 @@
             }
 
             .evolution-mini {
-                width: 50px;
-                height: 50px;
+                width: 65px;
+                height: 65px;
+                padding: 5px;
             }
             
             .evolution-mini .gen-badge {
-                width: 20px;
-                height: 20px;
-                font-size: 0.5rem;
+                width: 24px;
+                height: 24px;
+                font-size: 0.6rem;
+                top: 3px;
+                right: 3px;
             }
             
             .evolution-preview {
-                min-height: 60px;
+                min-height: 75px;
+                gap: 0.6rem;
+            }
+            
+            .evolution-mini-arrow {
+                font-size: 1.2rem;
             }
         }
 
