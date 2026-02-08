@@ -782,7 +782,7 @@
                 id: data.id,
                 name: data.name,
                 types: data.types.map(t => t.type.name),
-                sprite: data.sprites.other['official-artwork'].front_default || data.sprites.front_default,
+                sprite: `pokemon_images/${id}.png`, // Use local image
                 evolutionChainUrl: speciesData.evolution_chain.url
             };
 
