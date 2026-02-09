@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pokédex Terminal</title>
+    <title>Pokédex Terminal - Fully Offline</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -92,6 +92,22 @@
             margin-bottom: 1rem;
         }
 
+        .subtitle {
+            color: var(--secondary);
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+
+        .offline-indicator {
+            display: inline-block;
+            padding: 0.3rem 0.6rem;
+            background: linear-gradient(135deg, rgba(0, 212, 170, 0.2), rgba(0, 255, 65, 0.2));
+            border: 1px solid var(--secondary);
+            border-radius: 3px;
+            font-size: 0.7rem;
+            margin-top: 0.5rem;
+        }
+
         .gen-selector {
             display: flex;
             gap: 0.5rem;
@@ -163,7 +179,6 @@
             }
         }
 
-        /* Grid view mode - show all Pokemon at once */
         .pokemon-grid.view-grid {
             grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
             gap: 0.8rem;
@@ -197,7 +212,6 @@
             font-size: 0.5rem;
         }
 
-        /* Highlight selected Pokemon in grid view */
         .pokemon-card.selected {
             border-color: var(--accent);
             box-shadow: 0 0 30px rgba(255, 0, 110, 0.8);
@@ -250,7 +264,6 @@
             box-shadow: 0 0 30px currentColor;
         }
 
-        /* Generation-specific button colors */
         .gen-btn[data-gen="1"] { border-color: #FF1744; }
         .gen-btn[data-gen="1"].active { background: linear-gradient(135deg, #FF1744, #D50000); }
         
@@ -474,7 +487,6 @@
             z-index: 0;
         }
         
-        /* Generation-specific colors */
         .gen-badge.gen-1 { background: linear-gradient(135deg, #FF1744, #D50000); }
         .gen-badge.gen-2 { background: linear-gradient(135deg, #FFD600, #FFA000); }
         .gen-badge.gen-3 { background: linear-gradient(135deg, #00E676, #00C853); }
@@ -518,7 +530,6 @@
             z-index: 20;
         }
 
-        /* Type colors */
         .type-normal { background: #A8A878; color: #000; }
         .type-fire { background: #F08030; color: #fff; }
         .type-water { background: #6890F0; color: #fff; }
@@ -593,7 +604,8 @@
     <div class="container">
         <header>
             <h1>◤ POKÉDEX ◥</h1>
-            <p style="color: var(--secondary); font-size: 0.9rem; margin-top: 1rem;">TERMINAL v3.0 // SELECT GENERATION</p>
+            <p class="subtitle">TERMINAL v4.0 OFFLINE EDITION</p>
+            <div class="offline-indicator">✓ FULLY OFFLINE MODE</div>
         </header>
 
         <div class="gen-selector">
@@ -624,7 +636,6 @@
     </div>
 
     <script>
-        const API_BASE = 'https://pokeapi.co/api/v2';
         const genRanges = {
             1: [1, 151],
             2: [152, 251],
@@ -638,9 +649,54 @@
         };
 
         let currentGen = null;
-        let pokemonCache = {};
+        let pokemonData = {};
+        let evolutionChains = {};
+        let pokemonToChainMap = {}; // Maps pokemon ID to chain ID
         let currentView = 'normal';
         let selectedPokemonId = null;
+
+        async function loadPokemonData() {
+            try {
+                const response = await fetch('pokemon_data.json');
+                if (!response.ok) throw new Error('Failed to load pokemon_data.json');
+                
+                const dataArray = await response.json();
+                dataArray.forEach(pokemon => {
+                    pokemonData[pokemon.id] = pokemon;
+                });
+                
+                console.log(`Loaded ${Object.keys(pokemonData).length} Pokemon from JSON`);
+                return true;
+            } catch (err) {
+                console.error('Error loading Pokemon data:', err);
+                return false;
+            }
+        }
+
+        async function loadEvolutionChains() {
+            try {
+                const response = await fetch('evolution_chains.json');
+                if (!response.ok) throw new Error('Failed to load evolution_chains.json');
+                
+                const chains = await response.json();
+                
+                // Store chains and create a map from pokemon ID to chain ID
+                for (const [chainId, chainData] of Object.entries(chains)) {
+                    evolutionChains[chainId] = chainData.chain;
+                    
+                    // Map each pokemon in this chain to the chain ID
+                    chainData.chain.allPokemon.forEach(pokemonId => {
+                        pokemonToChainMap[pokemonId] = chainId;
+                    });
+                }
+                
+                console.log(`Loaded ${Object.keys(evolutionChains).length} evolution chains`);
+                return true;
+            } catch (err) {
+                console.error('Error loading evolution chains:', err);
+                return false;
+            }
+        }
 
         function getGenerationFromId(id) {
             for (const [gen, [start, end]] of Object.entries(genRanges)) {
@@ -648,10 +704,9 @@
                     return parseInt(gen);
                 }
             }
-            return 1; // Default to gen 1 if not found
+            return 1;
         }
 
-        // Initialize
         document.querySelectorAll('.gen-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const gen = parseInt(e.target.dataset.gen);
@@ -659,7 +714,6 @@
             });
         });
 
-        // View mode controls
         document.querySelectorAll('.zoom-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const view = e.target.dataset.view;
@@ -671,18 +725,15 @@
             currentView = view;
             const grid = document.getElementById('pokemon-grid');
             
-            // Toggle grid view class
             if (view === 'grid') {
                 grid.classList.add('view-grid');
             } else {
                 grid.classList.remove('view-grid');
-                // Clear any selected pokemon when switching back to normal
                 document.querySelectorAll('.pokemon-card').forEach(card => {
                     card.classList.remove('selected');
                 });
             }
             
-            // Update active button
             document.querySelectorAll('.zoom-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.view === view);
             });
@@ -692,37 +743,27 @@
             const cards = document.querySelectorAll('.pokemon-card');
             let found = false;
             
-            // Check if the Pokemon is already visible in the current generation
             cards.forEach(card => {
                 const imageContainer = card.querySelector('.pokemon-image-container');
                 if (imageContainer && parseInt(imageContainer.dataset.id) === pokemonId) {
                     found = true;
-                    // Remove selected class from all cards
                     cards.forEach(c => c.classList.remove('selected'));
-                    // Add selected class to this card
                     card.classList.add('selected');
-                    // Scroll to the card
                     card.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
             });
             
-            // If not found, we need to load the correct generation first
             if (!found) {
                 const targetGen = getGenerationFromId(pokemonId);
                 if (targetGen !== currentGen) {
-                    // Load the target generation
                     loadGeneration(targetGen).then(() => {
-                        // Wait a bit for the generation to load, then scroll to the Pokemon
                         setTimeout(() => {
                             const cards = document.querySelectorAll('.pokemon-card');
                             cards.forEach(card => {
                                 const imageContainer = card.querySelector('.pokemon-image-container');
                                 if (imageContainer && parseInt(imageContainer.dataset.id) === pokemonId) {
-                                    // Remove selected class from all cards
                                     cards.forEach(c => c.classList.remove('selected'));
-                                    // Add selected class to this card
                                     card.classList.add('selected');
-                                    // Scroll to the card
                                     card.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                 }
                             });
@@ -735,7 +776,6 @@
         async function loadGeneration(gen) {
             currentGen = gen;
             
-            // Update active button
             document.querySelectorAll('.gen-btn').forEach(btn => {
                 btn.classList.toggle('active', parseInt(btn.dataset.gen) === gen);
             });
@@ -750,13 +790,23 @@
 
             try {
                 const [start, end] = genRanges[gen];
-                const pokemonPromises = [];
+                const pokemon = [];
 
                 for (let i = start; i <= end; i++) {
-                    pokemonPromises.push(fetchPokemon(i));
+                    if (pokemonData[i]) {
+                        pokemon.push({
+                            id: pokemonData[i].id,
+                            name: pokemonData[i].name,
+                            types: pokemonData[i].types,
+                            sprite: `pokemon_images/${i}.png`
+                        });
+                    }
                 }
 
-                const pokemon = await Promise.all(pokemonPromises);
+                if (pokemon.length === 0) {
+                    throw new Error('No Pokemon data loaded!');
+                }
+
                 displayPokemon(pokemon, gen);
             } catch (err) {
                 error.textContent = `ERROR: ${err.message}`;
@@ -764,30 +814,6 @@
             } finally {
                 loading.style.display = 'none';
             }
-        }
-
-        async function fetchPokemon(id) {
-            if (pokemonCache[id]) return pokemonCache[id];
-
-            const response = await fetch(`${API_BASE}/pokemon/${id}`);
-            if (!response.ok) throw new Error(`Failed to fetch Pokémon #${id}`);
-            
-            const data = await response.json();
-            
-            // Fetch species data for evolution chain
-            const speciesResponse = await fetch(data.species.url);
-            const speciesData = await speciesResponse.json();
-            
-            const pokemon = {
-                id: data.id,
-                name: data.name,
-                types: data.types.map(t => t.type.name),
-                sprite: `pokemon_images/${id}.png`, // Use local image
-                evolutionChainUrl: speciesData.evolution_chain.url
-            };
-
-            pokemonCache[id] = pokemon;
-            return pokemon;
         }
 
         function displayPokemon(pokemonList, gen) {
@@ -821,63 +847,46 @@
                 </div>
             `;
 
-            // Click on image container to play Pokémon sound
             card.querySelector('.pokemon-image-container').addEventListener('click', (e) => {
                 e.stopPropagation();
                 playPokemonSound(pokemon.id);
             });
 
-            // Click on type to play type sound
             card.querySelectorAll('.type-badge').forEach(badge => {
-                console.log(`Setting up click handler for type: ${badge.dataset.type}`);
                 badge.addEventListener('click', (e) => {
-                    console.log(`CLICKED TYPE BADGE: ${e.target.dataset.type}`);
                     e.stopPropagation();
                     e.preventDefault();
                     const type = e.target.dataset.type;
-                    console.log(`About to play sound: pokemon_types/${type}.mp3`);
                     playTypeSound(type);
                 });
             });
 
-            // Handle clicks and double-taps on card
-            // In grid view: single tap OR double tap -> switch to normal and scroll to pokemon
-            // In normal view: double tap -> switch to grid view
             let lastTap = 0;
             card.addEventListener('click', (e) => {
                 const currentTime = new Date().getTime();
                 const tapLength = currentTime - lastTap;
                 
-                // Double tap detected (taps within 300ms)
                 if (tapLength < 300 && tapLength > 0) {
                     e.preventDefault();
                     e.stopPropagation();
                     
                     if (currentView === 'grid') {
-                        // Double tap in grid view - switch to normal and scroll to this pokemon
                         setViewMode('normal');
-                        setTimeout(() => {
-                            scrollToPokemon(pokemon.id);
-                        }, 100);
+                        setTimeout(() => scrollToPokemon(pokemon.id), 100);
                     } else {
-                        // Double tap in normal view - switch to grid view
                         setViewMode('grid');
                     }
                     
-                    lastTap = 0; // Reset to prevent triple-tap issues
+                    lastTap = 0;
                 } else if (currentView === 'grid') {
-                    // Single tap in grid view - switch to normal and scroll
                     setViewMode('normal');
-                    setTimeout(() => {
-                        scrollToPokemon(pokemon.id);
-                    }, 100);
+                    setTimeout(() => scrollToPokemon(pokemon.id), 100);
                 }
                 
                 lastTap = currentTime;
             });
 
-            // Load evolution chain asynchronously
-            loadEvolutionPreview(pokemon, card.querySelector('.evolution-preview'));
+            loadEvolutionPreview(pokemon.id, card.querySelector('.evolution-preview'));
 
             return card;
         }
@@ -890,29 +899,30 @@
         }
 
         function playTypeSound(type) {
-            console.log(`playTypeSound called with type: ${type}`);
-            console.log(`Attempting to play: pokemon_types/${type}.mp3`);
             const audio = new Audio(`pokemon_types/${type}.mp3`);
-            audio.volume = 1.0; // Set to maximum volume
+            audio.volume = 1.0;
             audio.play().catch(err => {
                 console.log(`Could not play sound for type ${type}:`, err);
             });
         }
 
-        async function loadEvolutionPreview(pokemon, container) {
+        function loadEvolutionPreview(pokemonId, container) {
             try {
-                const evolutionData = await fetchEvolutionChain(pokemon.evolutionChainUrl);
-                const evolutionChain = evolutionData.linear;
-                const branches = evolutionData.branches;
+                // Get the evolution chain for this Pokemon
+                const chainId = pokemonToChainMap[pokemonId];
+                
+                if (!chainId || !evolutionChains[chainId]) {
+                    container.innerHTML = '<span class="evolution-loading">No evolutions</span>';
+                    return;
+                }
+                
+                const evolutionData = evolutionChains[chainId];
                 const parentMap = evolutionData.parentMap;
-                const currentIndex = evolutionChain.indexOf(pokemon.id);
                 
                 container.innerHTML = '';
                 
-                // Get the direct parent of this Pokemon using the parent map
-                const directParent = parentMap[pokemon.id];
+                const directParent = parentMap[pokemonId];
                 
-                // Build the ancestry chain going backwards
                 const ancestry = [];
                 let currentAncestor = directParent;
                 while (currentAncestor !== undefined && currentAncestor !== null) {
@@ -920,16 +930,15 @@
                     currentAncestor = parentMap[currentAncestor];
                 }
                 
-                // Show pre-evolutions (ancestry)
                 for (let i = 0; i < ancestry.length; i++) {
                     const evoId = ancestry[i];
-                    const evoPokemon = await fetchPokemon(evoId);
+                    const evoPokemon = pokemonData[evoId];
                     const evoGen = getGenerationFromId(evoId);
                     
                     const mini = document.createElement('div');
                     mini.className = 'evolution-mini';
                     mini.innerHTML = `
-                        <img src="${evoPokemon.sprite}" alt="${evoPokemon.name}" title="${evoPokemon.name}">
+                        <img src="pokemon_images/${evoId}.png" alt="${evoPokemon.name}" title="${evoPokemon.name}">
                         <div class="gen-badge gen-${evoGen}">${evoGen}</div>
                     `;
                     
@@ -951,42 +960,33 @@
                     container.appendChild(arrow);
                 }
                 
-                // Add "YOU" marker for current Pokémon
                 const currentMarker = document.createElement('div');
                 currentMarker.style.cssText = 'color: var(--accent); font-family: "Press Start 2P", monospace; font-size: 0.6rem;';
                 currentMarker.textContent = 'YOU';
                 container.appendChild(currentMarker);
                 
-                // Find all Pokemon that have this Pokemon as their parent (direct children)
                 const directChildren = Object.entries(parentMap)
-                    .filter(([childId, parentId]) => parentId === pokemon.id)
+                    .filter(([childId, parentId]) => parentId === pokemonId)
                     .map(([childId]) => parseInt(childId));
                 
-                // Check if current Pokemon has any evolutions
-                const currentBranches = branches.filter(b => b.from === pokemon.id);
-                
-                // Only show next evolutions if this Pokemon actually has children
                 if (directChildren.length > 0) {
                     const arrow = document.createElement('span');
                     arrow.className = 'evolution-mini-arrow';
                     arrow.textContent = '→';
                     container.appendChild(arrow);
                     
-                    // If current Pokemon has multiple evolution paths, show them all in a column
                     if (directChildren.length > 1) {
-                        // Create a container for branching evolutions
                         const branchContainer = document.createElement('div');
                         branchContainer.style.cssText = 'display: flex; flex-direction: column; gap: 0.3rem; align-items: center;';
                         
-                        // Show all children
                         for (const childId of directChildren) {
-                            const evoPokemon = await fetchPokemon(childId);
+                            const evoPokemon = pokemonData[childId];
                             const evoGen = getGenerationFromId(childId);
                             
                             const mini = document.createElement('div');
                             mini.className = 'evolution-mini';
                             mini.innerHTML = `
-                                <img src="${evoPokemon.sprite}" alt="${evoPokemon.name}" title="${evoPokemon.name}">
+                                <img src="pokemon_images/${childId}.png" alt="${evoPokemon.name}" title="${evoPokemon.name}">
                                 <div class="gen-badge gen-${evoGen}">${evoGen}</div>
                             `;
                             
@@ -1005,15 +1005,14 @@
                         
                         container.appendChild(branchContainer);
                     } else {
-                        // Single child - show it and continue the chain
                         const childId = directChildren[0];
-                        const evoPokemon = await fetchPokemon(childId);
+                        const evoPokemon = pokemonData[childId];
                         const evoGen = getGenerationFromId(childId);
                         
                         const mini = document.createElement('div');
                         mini.className = 'evolution-mini';
                         mini.innerHTML = `
-                            <img src="${evoPokemon.sprite}" alt="${evoPokemon.name}" title="${evoPokemon.name}">
+                            <img src="pokemon_images/${childId}.png" alt="${evoPokemon.name}" title="${evoPokemon.name}">
                             <div class="gen-badge gen-${evoGen}">${evoGen}</div>
                         `;
                         
@@ -1029,7 +1028,6 @@
                         
                         container.appendChild(mini);
                         
-                        // Check if the child has further evolutions
                         const grandchildren = Object.entries(parentMap)
                             .filter(([gChildId, gParentId]) => gParentId === childId)
                             .map(([gChildId]) => parseInt(gChildId));
@@ -1040,19 +1038,18 @@
                             arrow.textContent = '→';
                             container.appendChild(arrow);
                             
-                            // Show grandchildren (can be multiple like Poliwrath/Politoed)
                             if (grandchildren.length > 1) {
                                 const branchContainer = document.createElement('div');
                                 branchContainer.style.cssText = 'display: flex; flex-direction: column; gap: 0.3rem; align-items: center;';
                                 
                                 for (const gChildId of grandchildren) {
-                                    const gEvoPokemon = await fetchPokemon(gChildId);
+                                    const gEvoPokemon = pokemonData[gChildId];
                                     const gEvoGen = getGenerationFromId(gChildId);
                                     
                                     const gMini = document.createElement('div');
                                     gMini.className = 'evolution-mini';
                                     gMini.innerHTML = `
-                                        <img src="${gEvoPokemon.sprite}" alt="${gEvoPokemon.name}" title="${gEvoPokemon.name}">
+                                        <img src="pokemon_images/${gChildId}.png" alt="${gEvoPokemon.name}" title="${gEvoPokemon.name}">
                                         <div class="gen-badge gen-${gEvoGen}">${gEvoGen}</div>
                                     `;
                                     
@@ -1072,13 +1069,13 @@
                                 container.appendChild(branchContainer);
                             } else {
                                 const gChildId = grandchildren[0];
-                                const gEvoPokemon = await fetchPokemon(gChildId);
+                                const gEvoPokemon = pokemonData[gChildId];
                                 const gEvoGen = getGenerationFromId(gChildId);
                                 
                                 const gMini = document.createElement('div');
                                 gMini.className = 'evolution-mini';
                                 gMini.innerHTML = `
-                                    <img src="${gEvoPokemon.sprite}" alt="${gEvoPokemon.name}" title="${gEvoPokemon.name}">
+                                    <img src="pokemon_images/${gChildId}.png" alt="${gEvoPokemon.name}" title="${gEvoPokemon.name}">
                                     <div class="gen-badge gen-${gEvoGen}">${gEvoGen}</div>
                                 `;
                                 
@@ -1098,7 +1095,6 @@
                     }
                 }
                 
-                // If no evolutions at all, show message
                 if (ancestry.length === 0 && directChildren.length === 0) {
                     container.innerHTML = '<span class="evolution-loading">No evolutions</span>';
                 }
@@ -1108,90 +1104,29 @@
             }
         }
 
-        async function fetchEvolutionChain(url) {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('Failed to fetch evolution chain');
+        async function init() {
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
             
-            const data = await response.json();
-            return parseEvolutionChain(data.chain);
+            loading.style.display = 'block';
+            loading.textContent = '▸ LOADING POKÉDEX DATABASE...';
+            
+            const pokemonLoaded = await loadPokemonData();
+            const chainsLoaded = await loadEvolutionChains();
+            
+            if (pokemonLoaded && chainsLoaded) {
+                await loadGeneration(1);
+            } else {
+                loading.style.display = 'none';
+                let errorMsg = 'ERROR: Missing files - ';
+                if (!pokemonLoaded) errorMsg += 'pokemon_data.json ';
+                if (!chainsLoaded) errorMsg += 'evolution_chains.json ';
+                error.textContent = errorMsg;
+                error.style.display = 'block';
+            }
         }
 
-        function parseEvolutionChain(chain) {
-            const evolutionData = {
-                linear: [],      // Linear path (main evolution line)
-                branches: [],    // Alternative evolution branches
-                allPokemon: []   // All Pokemon in the evolution family
-            };
-            
-            function traverse(node, depth = 0, parentId = null) {
-                const speciesId = parseInt(node.species.url.split('/').slice(-2)[0]);
-                
-                // Track all Pokemon
-                if (!evolutionData.allPokemon.includes(speciesId)) {
-                    evolutionData.allPokemon.push(speciesId);
-                }
-                
-                // Add to linear path
-                if (evolutionData.linear.length === depth) {
-                    evolutionData.linear.push([speciesId]);
-                } else if (evolutionData.linear.length > depth) {
-                    evolutionData.linear[depth].push(speciesId);
-                }
-                
-                // Track parent relationship for branches
-                if (parentId !== null && depth > 0) {
-                    // Check if this is a branch (not the first evolution at this depth)
-                    const existingAtDepth = evolutionData.linear[depth];
-                    if (existingAtDepth && existingAtDepth.length > 1 && existingAtDepth[0] !== speciesId) {
-                        evolutionData.branches.push({
-                            from: parentId,
-                            to: speciesId,
-                            depth: depth
-                        });
-                    }
-                }
-                
-                // If there are multiple evolutions, handle branches
-                if (node.evolves_to.length > 1) {
-                    // This Pokemon has branching evolutions
-                    node.evolves_to.forEach((evolution, index) => {
-                        traverse(evolution, depth + 1, speciesId);
-                    });
-                } else if (node.evolves_to.length === 1) {
-                    // Single evolution path
-                    traverse(node.evolves_to[0], depth + 1, speciesId);
-                }
-            }
-            
-            traverse(chain);
-            
-            // Flatten linear path for backwards compatibility
-            const flatLinear = evolutionData.linear.flat();
-            
-            // Build a parent map for easy lookup
-            const parentMap = {};
-            
-            function buildParentMap(node, parent = null) {
-                const speciesId = parseInt(node.species.url.split('/').slice(-2)[0]);
-                if (parent !== null) {
-                    parentMap[speciesId] = parent;
-                }
-                node.evolves_to.forEach(evo => buildParentMap(evo, speciesId));
-            }
-            
-            buildParentMap(chain);
-            
-            return {
-                linear: flatLinear,
-                branches: evolutionData.branches,
-                hasMultiplePaths: evolutionData.branches.length > 0,
-                allPokemon: evolutionData.allPokemon,
-                parentMap: parentMap
-            };
-        }
-
-        // Load Generation 1 by default
-        loadGeneration(1);
+        init();
     </script>
 </body>
 </html>
