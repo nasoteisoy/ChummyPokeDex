@@ -135,6 +135,22 @@
     .type-steel   { background:#B8B8D0; color:#000; }
     .type-fairy   { background:#EE99AC; color:#000; }
 
+    /* ── VIEW TOGGLE ── */
+    .view-toggle {
+      display: flex; justify-content: flex-end; gap: 0.4rem; margin-bottom: 0.75rem;
+    }
+    .view-btn {
+      font-family: 'Orbitron', monospace; font-weight: 700; font-size: 0.65rem;
+      padding: 0.35rem 0.8rem; cursor: pointer; transition: all 0.2s;
+      background: rgba(0,0,0,0.4); border: 1px solid rgba(0,212,170,0.3);
+      color: rgba(0,212,170,0.5); letter-spacing: 0.05em;
+    }
+    .view-btn.active {
+      background: rgba(0,212,170,0.15); border-color: var(--secondary);
+      color: var(--secondary); box-shadow: 0 0 8px rgba(0,212,170,0.3);
+    }
+    .view-btn:hover { border-color: var(--secondary); color: var(--secondary); }
+
     /* ── LIST VIEW ── */
     #list-view { display: block; }
     .search-result-label {
@@ -156,16 +172,26 @@
       box-shadow: 0 0 12px rgba(0,255,65,0.18); transform: translateX(3px);
     }
     @keyframes rowSlideIn { from { opacity:0; transform:translateX(-15px); } to { opacity:1; transform:translateX(0); } }
+    .pokemon-row.was-selected {
+      border-color: var(--secondary) !important;
+      box-shadow: 0 0 18px rgba(0,212,170,0.5) !important;
+      animation: highlightFade 1.5s ease-out forwards;
+    }
+    @keyframes highlightFade {
+      0%   { border-color: var(--secondary); box-shadow: 0 0 18px rgba(0,212,170,0.6); }
+      100% { border-color: rgba(0,255,65,0.2); box-shadow: none; }
+    }
 
     .row-img { width: 56px; height: 56px; object-fit: contain; filter: drop-shadow(0 0 5px rgba(0,255,65,0.25)); }
     .row-id { font-family:'Press Start 2P',monospace; font-size:0.48rem; color:rgba(0,212,170,0.65); }
     .row-name { font-family:'Press Start 2P',monospace; font-size:0.6rem; text-transform:capitalize; color:var(--primary); }
-    .row-sound-btn {
+    .row-sound-btn, .detail-sound-btn {
       background:none; border:1px solid rgba(0,212,170,0.35); color:var(--secondary);
-      cursor:pointer; padding:0.25rem 0.45rem; border-radius:3px; font-size:0.85rem;
-      transition:all 0.2s; flex-shrink:0; line-height:1;
+      cursor:pointer; border-radius:3px; transition:all 0.2s; flex-shrink:0;
+      font-size:0.8rem; padding:0.3rem 0.6rem; line-height:1;
+      display:inline-flex; align-items:center; gap:0.3rem; white-space:nowrap;
     }
-    .row-sound-btn:hover { border-color:var(--secondary); box-shadow:0 0 8px rgba(0,212,170,0.5); }
+    .row-sound-btn:hover, .detail-sound-btn:hover { border-color:var(--secondary); box-shadow:0 0 8px rgba(0,212,170,0.5); background:rgba(0,212,170,0.08); }
     .row-types { display:flex; gap:0.3rem; flex-wrap:wrap; }
     .row-evo { display:flex; align-items:center; gap:0.3rem; flex-wrap:wrap; min-width:0; }
     .evo-arr { font-size:0.8rem; color:rgba(0,212,170,0.35); line-height:1; }
@@ -181,6 +207,29 @@
     .row-evo-img.is-current span { color:var(--accent); font-weight:700; }
     .type-badge { cursor:pointer; transition:transform 0.15s, box-shadow 0.15s; }
     .type-badge:hover { transform:scale(1.12); box-shadow:0 0 8px currentColor; }
+
+    /* ── SQUARES MODE ── */
+    .pokemon-list.grid-mode {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 0.75rem;
+    }
+    .pokemon-list.grid-mode .pokemon-row {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 0.35rem; padding: 0.75rem 0.5rem; text-align: center;
+      grid-template-columns: unset; transform: none !important;
+    }
+    .pokemon-list.grid-mode .pokemon-row:hover {
+      transform: translateY(-4px) scale(1.03) !important;
+    }
+    .pokemon-list.grid-mode .row-img { width: 72px; height: 72px; }
+    .pokemon-list.grid-mode .row-id { font-size: 0.42rem; }
+    .pokemon-list.grid-mode .row-name { font-size: 0.5rem; }
+    .pokemon-list.grid-mode .row-types { justify-content: center; }
+    .pokemon-list.grid-mode .row-sound-btn { font-size: 0.7rem; padding: 0.2rem 0.4rem; }
+    .pokemon-list.grid-mode .row-evo { display: none; }
+    .pokemon-list.grid-mode .gen-badge { position: absolute; top: 6px; right: 6px; width: 20px; height: 20px; font-size: 0.38rem; }
+    .pokemon-list.grid-mode .pokemon-row { position: relative; }
 
     /* ── DETAIL VIEW ── */
     #detail-view { display: none; }
@@ -205,13 +254,6 @@
       padding:1rem; min-width:160px;
     }
     .detail-img { width:140px; height:140px; object-fit:contain; filter:drop-shadow(0 0 18px rgba(0,255,65,0.4)); }
-    .detail-sound-btn {
-      margin-top:0.75rem; font-size:1.2rem;
-      background:none; border:1px solid rgba(0,212,170,0.4);
-      color:var(--secondary); cursor:pointer; padding:0.3rem 0.7rem;
-      border-radius:3px; transition:all 0.2s;
-    }
-    .detail-sound-btn:hover { background:rgba(0,212,170,0.15); box-shadow:0 0 10px rgba(0,212,170,0.5); }
 
     .detail-meta { flex:1; min-width: 200px; }
     .detail-num { font-family:'Press Start 2P',monospace; font-size:0.55rem; color:rgba(0,212,170,0.6); margin-bottom:0.3rem; }
@@ -349,6 +391,12 @@
     <button class="gen-btn" data-gen="9">GEN 9</button>
   </div>
 
+  <!-- View toggle -->
+  <div class="view-toggle">
+    <button class="view-btn" id="btn-list" title="List view">☰ LIST</button>
+    <button class="view-btn active" id="btn-grid" title="Grid view">⊞ SQUARES</button>
+  </div>
+
   <!-- LIST VIEW -->
   <div id="list-view">
     <div id="list-status" class="search-result-label" style="display:none;"></div>
@@ -399,6 +447,17 @@ function getGen(id) {
 // ── STATE ────────────────────────────────────────────────
 let currentGen = null;
 let isSearchMode = false;
+let viewMode = 'grid'; // 'list' | 'grid'
+let lastOpenedId = null;
+let listScrollPos = 0;
+
+function setViewMode(mode) {
+  viewMode = mode;
+  const list = document.getElementById('pokemon-list');
+  list.classList.toggle('grid-mode', mode === 'grid');
+  document.getElementById('btn-list').classList.toggle('active', mode === 'list');
+  document.getElementById('btn-grid').classList.toggle('active', mode === 'grid');
+}
 
 // ── SOUNDS ───────────────────────────────────────────────
 function playPokemonSound(id, e) {
@@ -481,6 +540,7 @@ function createRow(pokemon, animDelay=0) {
 
   const li = document.createElement('li');
   li.className = 'pokemon-row';
+  li.dataset.pokemonId = pokemon.id;
   li.style.animationDelay = `${animDelay}s`;
 
   const typesHTML = pokemon.types.map(t =>
@@ -490,9 +550,10 @@ function createRow(pokemon, animDelay=0) {
   // Evo chain: images with name labels, arrows between
   const evoHTML = chain.map((p, i) => {
     const isCur = p.id === pokemon.id;
+    const evoGen = getGen(p.id);
     const imgNode = `<div class="row-evo-img${isCur ? ' is-current' : ''}" data-evo-id="${p.id}">
       <img src="pokemon_images/${p.id}.png" alt="${p.name}">
-      <span>${p.name}</span>
+      <span class="gen-badge gen-${evoGen}" style="width:16px;height:16px;font-size:0.35rem;margin-top:0.1rem;">${evoGen}</span>
     </div>`;
     return (i < chain.length - 1) ? imgNode + `<span class="evo-arr">→</span>` : imgNode;
   }).join('');
@@ -688,7 +749,7 @@ function showDetail(pokemonId) {
       <div class="detail-img-wrap">
         <img class="detail-img" src="pokemon_images/${pokemon.id}.png" alt="${pokemon.name}">
         <br>
-        <button class="detail-sound-btn" id="detail-sound">🔊 Hear Name</button>
+        <button class="detail-sound-btn" id="detail-sound" style="margin-top:0.75rem;">🔊 Hear Name</button>
       </div>
       <div class="detail-meta">
         <div class="detail-num">#${String(pokemon.id).padStart(3,'0')} · <span class="gen-badge gen-${gen}" style="vertical-align:middle;">${gen}</span></div>
@@ -785,7 +846,11 @@ function showDetail(pokemonId) {
     badge.addEventListener('click', e => playTypeSound(badge.dataset.type, e));
   });
 
-  // Show detail view
+  // Only save scroll pos when coming FROM the list (not detail→detail navigation)
+  lastOpenedId = pokemonId;
+  if (document.getElementById('list-view').style.display !== 'none') {
+    listScrollPos = window.scrollY;
+  }
   document.getElementById('list-view').style.display = 'none';
   document.getElementById('detail-view').style.display = 'block';
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -807,19 +872,22 @@ function loadGeneration(gen) {
   loading.style.display = 'block';
   list.innerHTML = '';
 
-  requestAnimationFrame(() => {
-    const pokemonInGen = [];
-    for (let i = start; i <= end; i++) {
-      const p = pokemonById[i];
-      if (p) pokemonInGen.push(p);
-    }
+  return new Promise(resolve => {
+    requestAnimationFrame(() => {
+      const pokemonInGen = [];
+      for (let i = start; i <= end; i++) {
+        const p = pokemonById[i];
+        if (p) pokemonInGen.push(p);
+      }
 
-    pokemonInGen.forEach((p, idx) => {
-      const row = createRow(p, idx * 0.015);
-      list.appendChild(row);
+      pokemonInGen.forEach((p, idx) => {
+        const row = createRow(p, idx * 0.015);
+        list.appendChild(row);
+      });
+
+      loading.style.display = 'none';
+      resolve();
     });
-
-    loading.style.display = 'none';
   });
 }
 
@@ -883,14 +951,43 @@ document.querySelectorAll('.gen-btn').forEach(btn => {
 document.getElementById('search-btn').addEventListener('click', doSearch);
 document.getElementById('search-input').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
 document.getElementById('clear-btn').addEventListener('click', clearSearch);
+document.getElementById('btn-list').addEventListener('click', () => setViewMode('list'));
+document.getElementById('btn-grid').addEventListener('click', () => setViewMode('grid'));
 
 document.getElementById('back-btn').addEventListener('click', () => {
   document.getElementById('detail-view').style.display = 'none';
   document.getElementById('list-view').style.display = 'block';
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  if (!lastOpenedId) {
+    window.scrollTo({ top: listScrollPos });
+    return;
+  }
+
+  const targetGen = getGen(lastOpenedId);
+
+  function scrollAndHighlight() {
+    requestAnimationFrame(() => {
+      const row = document.querySelector(`.pokemon-row[data-pokemon-id="${lastOpenedId}"]`);
+      if (row) {
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        row.classList.add('was-selected');
+        setTimeout(() => row.classList.remove('was-selected'), 1500);
+      } else {
+        window.scrollTo({ top: listScrollPos });
+      }
+    });
+  }
+
+  if (targetGen !== currentGen) {
+    // Load the right gen first, then scroll
+    loadGeneration(targetGen).then(scrollAndHighlight);
+  } else {
+    scrollAndHighlight();
+  }
 });
 
 // ── INIT ─────────────────────────────────────────────────
+document.getElementById('pokemon-list').classList.add('grid-mode');
 loadGeneration(1);
 </script>
 
