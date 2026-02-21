@@ -51,6 +51,29 @@
       display: flex; gap: 0.5rem; margin: 1rem 0;
       justify-content: center; flex-wrap: wrap;
     }
+    .search-wrap {
+      position: relative; display: flex; flex-direction: column; min-width: 260px;
+    }
+    .autocomplete-dropdown {
+      position: absolute; top: 100%; left: 0; right: 0; z-index: 200;
+      background: #070c1e; border: 1px solid var(--secondary);
+      border-top: none; max-height: 280px; overflow-y: auto;
+      display: none;
+    }
+    .autocomplete-dropdown.open { display: block; }
+    .ac-item {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.35rem 0.7rem; cursor: pointer; transition: background 0.1s;
+      border-bottom: 1px solid rgba(0,255,65,0.06);
+    }
+    .ac-item:last-child { border-bottom: none; }
+    .ac-item:hover, .ac-item.active { background: rgba(0,212,170,0.12); }
+    .ac-item img { width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; }
+    .ac-item-info { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+    .ac-item-name { font-family:'Press Start 2P',monospace; font-size:0.5rem; text-transform:capitalize; color:var(--primary); }
+    .ac-item-sub { display:flex; gap:0.3rem; align-items:center; }
+    .ac-item-id { font-size:0.42rem; color:rgba(0,212,170,0.55); }
+    .ac-item-types { display:flex; gap:0.2rem; }
     .search-input {
       font-family: 'Orbitron', monospace;
       background: rgba(0,0,0,0.5);
@@ -373,7 +396,10 @@
 
   <!-- Search -->
   <div class="search-bar">
-    <input type="text" id="search-input" class="search-input" placeholder="Search by name or #ID…" />
+    <div class="search-wrap">
+      <input type="text" id="search-input" class="search-input" placeholder="Search by name or #ID…" autocomplete="off" />
+      <div class="autocomplete-dropdown" id="ac-dropdown"></div>
+    </div>
     <button class="ctrl-btn" id="search-btn">▸ SEARCH</button>
     <button class="ctrl-btn danger" id="clear-btn">✕ CLEAR</button>
   </div>
@@ -934,11 +960,89 @@ function doSearch() {
 function clearSearch() {
   document.getElementById('search-input').value = '';
   document.getElementById('list-status').style.display = 'none';
+  closeDropdown();
   if (currentGen) {
     loadGeneration(currentGen);
   } else {
     loadGeneration(1);
   }
+}
+
+// ══════════════════════════════════════════════════════════
+// ── AUTOCOMPLETE ─────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
+let acIndex = -1;
+
+function getAcResults(raw) {
+  if (!raw) return [];
+  const q = raw.toLowerCase().replace(/^#/, '');
+  const isNum = /^\d+$/.test(q);
+  return pokemonDataArr
+    .filter(p => isNum ? String(p.id).startsWith(q) : p.name.toLowerCase().includes(q))
+    .slice(0, 8);
+}
+
+function renderDropdown(results, inputVal) {
+  const dd = document.getElementById('ac-dropdown');
+  acIndex = -1;
+  if (results.length === 0 || !inputVal.trim()) {
+    dd.classList.remove('open');
+    dd.innerHTML = '';
+    return;
+  }
+  const q = inputVal.toLowerCase();
+  dd.innerHTML = results.map((p, i) => {
+    const typesHTML = p.types.map(t =>
+      `<span class="type-badge type-${t}" style="font-size:0.42rem;padding:0.1rem 0.3rem;">${t}</span>`
+    ).join('');
+    // Bold the matching part of the name
+    const nameLower = p.name.toLowerCase();
+    const idx = nameLower.indexOf(q.replace(/^#/,''));
+    let displayName = p.name;
+    if (idx !== -1 && !/^\d+$/.test(q)) {
+      displayName = p.name.slice(0,idx) +
+        `<span style="color:var(--secondary)">${p.name.slice(idx, idx+q.length)}</span>` +
+        p.name.slice(idx+q.length);
+    }
+    const gen = getGen(p.id);
+    return `<div class="ac-item" data-id="${p.id}">
+      <img src="pokemon_images/${p.id}.png" alt="${p.name}">
+      <div class="ac-item-info">
+        <div class="ac-item-name">${displayName}</div>
+        <div class="ac-item-sub">
+          <span class="ac-item-id">#${String(p.id).padStart(3,'0')}</span>
+          <span class="gen-badge gen-${gen}" style="width:15px;height:15px;font-size:0.32rem;">${gen}</span>
+          <div class="ac-item-types">${typesHTML}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  dd.classList.add('open');
+
+  dd.querySelectorAll('.ac-item').forEach(item => {
+    item.addEventListener('mousedown', e => {
+      e.preventDefault();
+      const id = parseInt(item.dataset.id);
+      closeDropdown();
+      showDetail(id);
+    });
+  });
+}
+
+function closeDropdown() {
+  const dd = document.getElementById('ac-dropdown');
+  dd.classList.remove('open');
+  dd.innerHTML = '';
+  acIndex = -1;
+}
+
+function moveAcIndex(dir) {
+  const items = document.querySelectorAll('.ac-item');
+  if (!items.length) return;
+  items.forEach(i => i.classList.remove('active'));
+  acIndex = (acIndex + dir + items.length) % items.length;
+  items[acIndex].classList.add('active');
+  document.getElementById('search-input').value = items[acIndex].querySelector('.ac-item-name').textContent;
 }
 
 // ══════════════════════════════════════════════════════════
@@ -948,8 +1052,25 @@ document.querySelectorAll('.gen-btn').forEach(btn => {
   btn.addEventListener('click', () => loadGeneration(parseInt(btn.dataset.gen)));
 });
 
-document.getElementById('search-btn').addEventListener('click', doSearch);
-document.getElementById('search-input').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+document.getElementById('search-btn').addEventListener('click', () => { closeDropdown(); doSearch(); });
+document.getElementById('search-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    if (acIndex >= 0) {
+      const active = document.querySelector('.ac-item.active');
+      if (active) { closeDropdown(); showDetail(parseInt(active.dataset.id)); return; }
+    }
+    closeDropdown(); doSearch();
+  } else if (e.key === 'ArrowDown') { e.preventDefault(); moveAcIndex(1); }
+  else if (e.key === 'ArrowUp')   { e.preventDefault(); moveAcIndex(-1); }
+  else if (e.key === 'Escape')    { closeDropdown(); }
+});
+document.getElementById('search-input').addEventListener('input', e => {
+  const val = e.target.value;
+  renderDropdown(getAcResults(val), val);
+});
+document.getElementById('search-input').addEventListener('blur', () => {
+  setTimeout(closeDropdown, 150);
+});
 document.getElementById('clear-btn').addEventListener('click', clearSearch);
 document.getElementById('btn-list').addEventListener('click', () => setViewMode('list'));
 document.getElementById('btn-grid').addEventListener('click', () => setViewMode('grid'));
