@@ -160,19 +160,36 @@
 
     /* ── VIEW TOGGLE ── */
     .view-toggle {
-      display: flex; justify-content: flex-end; gap: 0.4rem; margin-bottom: 0.75rem;
+      position: fixed; right: 0; top: 50%; transform: translateY(-50%);
+      display: flex; flex-direction: column; gap: 0; z-index: 500;
     }
     .view-btn {
-      font-family: 'Orbitron', monospace; font-weight: 700; font-size: 0.65rem;
-      padding: 0.35rem 0.8rem; cursor: pointer; transition: all 0.2s;
-      background: rgba(0,0,0,0.4); border: 1px solid rgba(0,212,170,0.3);
-      color: rgba(0,212,170,0.5); letter-spacing: 0.05em;
+      font-family: 'Orbitron', monospace; font-weight: 700; font-size: 0.6rem;
+      padding: 0.7rem 0.5rem; cursor: pointer; transition: all 0.2s;
+      background: rgba(5,8,17,0.92); border: 1px solid rgba(0,212,170,0.3);
+      border-right: none; color: rgba(0,212,170,0.5); letter-spacing: 0.05em;
+      writing-mode: vertical-rl; text-orientation: mixed;
+      backdrop-filter: blur(8px);
     }
     .view-btn.active {
       background: rgba(0,212,170,0.15); border-color: var(--secondary);
-      color: var(--secondary); box-shadow: 0 0 8px rgba(0,212,170,0.3);
+      color: var(--secondary); box-shadow: -4px 0 12px rgba(0,212,170,0.25);
     }
-    .view-btn:hover { border-color: var(--secondary); color: var(--secondary); }
+    .view-btn:hover { background: rgba(0,212,170,0.1); border-color: var(--secondary); color: var(--secondary); }
+    #top-btn {
+      position: fixed; right: 0; bottom: 5rem; z-index: 500;
+      background: rgba(5,8,17,0.92); border: 1px solid rgba(0,212,170,0.3);
+      border-right: none; color: rgba(0,212,170,0.5);
+      padding: 0.7rem 0.5rem; cursor: pointer; transition: all 0.2s;
+      font-size: 1rem; backdrop-filter: blur(8px); line-height: 1;
+      opacity: 0; pointer-events: none;
+    }
+    #top-btn.visible { opacity: 1; pointer-events: auto; }
+    #top-btn:hover { background: rgba(0,212,170,0.15); border-color: var(--secondary); color: var(--secondary); box-shadow: -4px 0 12px rgba(0,212,170,0.25); }
+    @media (max-width: 640px) {
+      .view-toggle { top: auto; bottom: 1rem; transform: none; }
+      #top-btn { bottom: 7rem; }
+    }
 
     /* ── LIST VIEW ── */
     #list-view { display: block; }
@@ -388,6 +405,13 @@
   </style>
 </head>
 <body>
+  <!-- View toggle - fixed to side -->
+  <div class="view-toggle">
+    <button class="view-btn" id="btn-list" title="List view">☰ LIST</button>
+    <button class="view-btn active" id="btn-grid" title="Grid view">⊞ SQUARES</button>
+  </div>
+  <button id="top-btn" title="Back to top">▲</button>
+
 <div class="container">
   <header>
     <h1>◤ POKÉDEX ◥</h1>
@@ -415,12 +439,6 @@
     <button class="gen-btn" data-gen="7">GEN 7</button>
     <button class="gen-btn" data-gen="8">GEN 8</button>
     <button class="gen-btn" data-gen="9">GEN 9</button>
-  </div>
-
-  <!-- View toggle -->
-  <div class="view-toggle">
-    <button class="view-btn" id="btn-list" title="List view">☰ LIST</button>
-    <button class="view-btn active" id="btn-grid" title="Grid view">⊞ SQUARES</button>
   </div>
 
   <!-- LIST VIEW -->
@@ -1074,6 +1092,12 @@ document.getElementById('search-input').addEventListener('blur', () => {
 document.getElementById('clear-btn').addEventListener('click', clearSearch);
 document.getElementById('btn-list').addEventListener('click', () => setViewMode('list'));
 document.getElementById('btn-grid').addEventListener('click', () => setViewMode('grid'));
+
+const topBtn = document.getElementById('top-btn');
+window.addEventListener('scroll', () => {
+  topBtn.classList.toggle('visible', window.scrollY > 300);
+});
+topBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
 document.getElementById('back-btn').addEventListener('click', () => {
   document.getElementById('detail-view').style.display = 'none';
